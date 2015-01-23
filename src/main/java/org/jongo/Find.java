@@ -39,6 +39,15 @@ public class Find {
     private final List<QueryModifier> modifiers;
     private Query fields;
 
+    Find(DBCollection collection, ReadPreference readPreference, Unmarshaller unmarshaller, QueryFactory queryFactory, Query query) {
+        this.readPreference = readPreference;
+        this.unmarshaller = unmarshaller;
+        this.collection = collection;
+        this.queryFactory = queryFactory;
+        this.query = query;
+        this.modifiers = new ArrayList<QueryModifier>();
+    }
+
     Find(DBCollection collection, ReadPreference readPreference, Unmarshaller unmarshaller, QueryFactory queryFactory, String query, Object... parameters) {
         this.readPreference = readPreference;
         this.unmarshaller = unmarshaller;
@@ -58,6 +67,11 @@ public class Find {
             modifier.modify(cursor);
         }
         return new MongoCursor<T>(cursor, resultHandler);
+    }
+
+    public Find projection(Query fields) {
+        this.fields = fields;
+        return this;
     }
 
     public Find projection(String fields) {
@@ -83,6 +97,16 @@ public class Find {
         this.modifiers.add(new QueryModifier() {
             public void modify(DBCursor cursor) {
                 cursor.skip(skip);
+            }
+        });
+        return this;
+    }
+
+    public Find sort(Query sort) {
+        final DBObject sortDBObject = sort.toDBObject();
+        this.modifiers.add(new QueryModifier() {
+            public void modify(DBCursor cursor) {
+                cursor.sort(sortDBObject);
             }
         });
         return this;
