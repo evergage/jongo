@@ -48,12 +48,12 @@ class BenchUtil {
     }
 
     public static DBCollection getCollectionFromDriver() throws UnknownHostException {
-        Mongo nativeMongo = new Mongo();
+        Mongo nativeMongo = new MongoClient();
         return nativeMongo.getDB("jongo").getCollection("benchmark");
     }
 
     public static MongoCollection getCollectionFromJongo(Mapper mapper) throws UnknownHostException {
-        Mongo mongo = new Mongo();
+        Mongo mongo = new MongoClient();
         DB db = mongo.getDB("jongo");
         Jongo jongo = new Jongo(db, mapper);
         return jongo.getCollection("benchmark");

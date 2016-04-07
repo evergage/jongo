@@ -16,17 +16,31 @@
 
 package org.jongo.util;
 
-import com.mongodb.DBObject;
-import com.mongodb.util.JSONSerializers;
-import org.jongo.ResultHandler;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 
-public class JSONResultHandler implements ResultHandler<String> {
-    public String map(DBObject result) {
-        return JSONSerializers.getStrict().serialize(result);
+/**
+ * A JUnit rule for testing with embedded Mongo.
+ *
+ * @author Alexandre Dutra
+ * @author Christian Trimble
+ */
+public class MongoEmbeddedRule implements TestRule {
+    private MongoResource mongoResource;
+
+    public Statement apply(final Statement base, Description description) {
+        return new Statement() {
+            @Override
+            public void evaluate() throws Throwable {
+                mongoResource = new MongoResource();
+                base.evaluate();
+            }
+        };
     }
 
-
-    public static String jsonify(String json) {
-        return json.replace("'", "\"");
+    public MongoResource getResource() {
+        return mongoResource;
     }
+
 }

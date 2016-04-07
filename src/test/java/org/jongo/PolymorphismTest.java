@@ -16,8 +16,13 @@
 
 package org.jongo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.bson.types.BSONTimestamp;
+import org.bson.types.MinKey;
+import org.bson.types.ObjectId;
+import org.jongo.marshall.jackson.oid.MongoId;
 import org.jongo.model.Animal;
 import org.jongo.model.Fox;
 import org.jongo.util.JongoTestCase;
@@ -78,6 +83,28 @@ public class PolymorphismTest extends JongoTestCase {
         assertThat(dog.discriminator).isEqualTo("B");
     }
 
+    @Test
+    public void canHandleInheritanceInASubDocument() throws Exception {
+
+        collection.save(new Zoo("Vincennes", new Fox("Zorro", "roux")));
+
+        Zoo zoo = collection.findOne().as(Zoo.class);
+        assertThat(zoo).isNotNull();
+        assertThat(zoo.mascot.getName()).isEqualTo("Zorro");
+    }
+
+    @Test
+    //https://github.com/bguerout/jongo/issues/258
+    public void canHandleInheritanceAsAQueryParameter() throws Exception {
+        Chiwawa chiwawa = new Chiwawa();
+        collection.insert(chiwawa);
+
+        collection.update(chiwawa._id).with("#", chiwawa);
+
+        Chiwawa result = collection.findOne().as(Chiwawa.class);
+        assertThat(result).isNotNull();
+    }
+
     @JsonTypeInfo(
             use = JsonTypeInfo.Id.NAME,
             include = JsonTypeInfo.As.PROPERTY,
@@ -85,9 +112,11 @@ public class PolymorphismTest extends JongoTestCase {
             visible = true)
     @JsonSubTypes({
             @JsonSubTypes.Type(value = Beagle.class, name = "B"),
-            @JsonSubTypes.Type(value = Loulou.class, name = "L")
+            @JsonSubTypes.Type(value = Loulou.class, name = "L"),
+            @JsonSubTypes.Type(value = Chiwawa.class, name = "C")
     })
     private static abstract class Dog {
+        ObjectId _id;
         String name, discriminator;
     }
 
@@ -95,6 +124,76 @@ public class PolymorphismTest extends JongoTestCase {
     }
 
     private static class Loulou extends Dog {
+    }
+
+    private static class Chiwawa extends Dog {
+        private String longText = "chiwawa-chiwawa-chiwawa-chiwawa-chiwawachiwawachiwawachiwawachiwawachiwawa";
+    }
+
+    private static class Zoo {
+
+        private String name;
+        private Animal mascot;
+
+        private Zoo() {
+            //jackson
+        }
+
+        public Zoo(String name, Animal mascot) {
+            this.name = name;
+            this.mascot = mascot;
+        }
+    }
+
+    @Test
+    public void canFindInheritedWithBSONTimestamp() throws IOException {
+        BsonTypes entity = new BsonTypes();
+        entity._id = new BSONTimestamp(((int) System.currentTimeMillis() / 1000), 0);
+        entity.value = new BSONTimestamp(((int) System.currentTimeMillis() / 1000), 0);
+        collection.save(entity);
+
+        BsonTypes found = collection.findOne().as(BsonTypes.class);
+
+        //assertThat(found).isInstanceOf(TimestampType.class);
+        assertThat(found._id).isEqualTo(entity._id);
+        assertThat(found.value).isEqualTo(entity.value);
+    }
+
+    @JsonTypeInfo(
+            use = JsonTypeInfo.Id.NAME,
+            include = JsonTypeInfo.As.PROPERTY,
+            property = "discriminator",
+            visible = true)
+    @JsonSubTypes({
+            @JsonSubTypes.Type(value = TimestampType.class, name = "timestamp"),
+            @JsonSubTypes.Type(value = MinKeyType.class, name = "minKey"),
+    })
+    private static class BsonTypes {
+        @MongoId
+        @JsonProperty("_id")
+        public BSONTimestamp _id;
+        public BSONTimestamp value;
+
+        public BSONTimestamp get_Id() {
+            return _id;
+        }
+
+        @JsonProperty
+        public BSONTimestamp getValue() {
+            return value;
+        }
+
+        @JsonProperty
+        public String discriminator;
+    }
+
+    private static class TimestampType extends BsonTypes {
+
+    }
+
+    private static class MinKeyType {
+        @JsonProperty
+        public MinKey value;
     }
 
 

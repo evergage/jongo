@@ -174,7 +174,7 @@ public class BsonQueryFactory implements QueryFactory {
             } else if (c == '{' || c == '.') {
                 return false;
             } else if (c == ',') {
-                return !isPropertyName(query, pos-1);
+                return !isPropertyName(query, pos - 1);
             }
         }
         return true;
@@ -197,9 +197,6 @@ public class BsonQueryFactory implements QueryFactory {
             if (parameter == null || Bson.isPrimitive(parameter)) {
                 return parameter;
             }
-            if (parameter instanceof Enum) {
-                return ((Enum<?>) parameter).name();
-            }
             if (parameter instanceof Collection) {
                 return marshallCollection((Collection<?>) parameter);
             }
@@ -215,8 +212,8 @@ public class BsonQueryFactory implements QueryFactory {
 
     private DBObject marshallArray(Object[] parameters) {
         BasicDBList list = new BasicDBList();
-        for (int i = 0; i < parameters.length; i++) {
-            list.add(marshallParameter(parameters[i]));
+        for (final Object parameter : parameters) {
+            list.add(marshallParameter(parameter));
         }
         return list;
     }
@@ -230,22 +227,37 @@ public class BsonQueryFactory implements QueryFactory {
     }
 
     private Object marshallDocument(Object parameter) {
-        BsonDocument document = marshaller.marshall(parameter);
-        DBObject obj = document.toDBObject();
 
-        if (obj.keySet().isEmpty()) {
-
-            // The object may have been serialized to a primitive type with a
-            // custom serializer, so try again after wrapping as an object property.
-            // We do this trick only as a fallback since it causes Jackson to consider the parameter
-            // as "Object" and thus ignore any annotations that may exist on its actual class.
-
-            Map<String, Object> primitiveWrapper = Collections.singletonMap("wrapped", parameter);
-            document = marshaller.marshall(primitiveWrapper);
-            return document.toDBObject().get("wrapped");
-
+        if (parameter instanceof Enum) {
+            return marshallParameterAsPrimitive(parameter);
         } else {
-            return obj;
+            BsonDocument document = marshaller.marshall(parameter);
+
+            if (hasBeenSerializedAsPrimitive(document)) {
+                return marshallParameterAsPrimitive(parameter);
+            } else {
+                return document.toDBObject();
+            }
         }
+    }
+
+    private boolean hasBeenSerializedAsPrimitive(BsonDocument document) {
+        byte[] bytes = document.toByteArray();
+        if (bytes.length > 4) {
+            return bytes.length != document.getSize();
+        }
+        return true;
+    }
+
+    /**
+     * The object may have been serialized to a primitive type with a
+     * custom serializer, so try again after wrapping as an object property.
+     * We do this trick only as a falllback since it causes Jackson to consider the parameter
+     * as "Object" and thus ignore any annotations that may exist on its actual class.
+     */
+    private Object marshallParameterAsPrimitive(Object parameter) {
+        Map<String, Object> primitiveWrapper = Collections.singletonMap("wrapped", parameter);
+        BsonDocument document = marshaller.marshall(primitiveWrapper);
+        return document.toDBObject().get("wrapped");
     }
 }

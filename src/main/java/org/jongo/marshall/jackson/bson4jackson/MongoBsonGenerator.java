@@ -18,7 +18,6 @@ package org.jongo.marshall.jackson.bson4jackson;
 
 import de.undercouch.bson4jackson.BsonConstants;
 import de.undercouch.bson4jackson.BsonGenerator;
-import de.undercouch.bson4jackson.io.ByteOrderUtil;
 import org.bson.types.BSONTimestamp;
 import org.bson.types.Binary;
 import org.bson.types.MaxKey;
@@ -37,13 +36,7 @@ class MongoBsonGenerator extends BsonGenerator {
         _writeArrayFieldNameIfNeeded();
         _verifyValueWrite("write datetime");
         _buffer.putByte(_typeMarker, BsonConstants.TYPE_OBJECTID);
-        // ObjectIds have their byte order flipped
-        int time = ByteOrderUtil.flip(Long.valueOf(objectId.getTime() / 1000L).intValue());
-        int machine = ByteOrderUtil.flip(objectId.getMachine());
-        int inc = ByteOrderUtil.flip(objectId.getInc());
-        _buffer.putInt(time);
-        _buffer.putInt(machine);
-        _buffer.putInt(inc);
+        _buffer.putBytes(objectId.toByteArray());
         flushBuffer();
     }
 

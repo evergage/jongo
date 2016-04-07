@@ -190,7 +190,7 @@ public class MongoCollection {
     }
 
     public Aggregate aggregate(String pipelineOperator, Object... parameters) {
-        return new Aggregate(collection.getDB(), collection.getName(), mapper.getUnmarshaller(), mapper.getQueryFactory()).and(pipelineOperator, parameters);
+        return new Aggregate(collection, mapper.getUnmarshaller(), mapper.getQueryFactory()).and(pipelineOperator, parameters);
     }
 
     public Aggregate aggregate(Query query) {
@@ -210,11 +210,11 @@ public class MongoCollection {
     }
 
     public void ensureIndex(String keys) {
-        collection.ensureIndex(createQuery(keys).toDBObject());
+        collection.createIndex(createQuery(keys).toDBObject());
     }
 
     public void ensureIndex(String keys, String options) {
-        collection.ensureIndex(createQuery(keys).toDBObject(), createQuery(options).toDBObject());
+        collection.createIndex(createQuery(keys).toDBObject(), createQuery(options).toDBObject());
     }
 
     public String getName() {

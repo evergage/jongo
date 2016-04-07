@@ -16,16 +16,18 @@
 
 package org.jongo;
 
+import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.mongodb.WriteConcern;
-import com.mongodb.WriteResult;
 import junit.framework.Assert;
 import org.bson.types.ObjectId;
-import org.jongo.marshall.jackson.oid.Id;
+import org.jongo.marshall.jackson.JacksonMapper;
 import org.jongo.model.*;
+import org.jongo.model.ExternalType.ExternalTypeMixin;
 import org.jongo.util.ErrorObject;
 import org.jongo.util.JongoTestCase;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Date;
@@ -35,6 +37,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class SaveTest extends JongoTestCase {
 
     private MongoCollection collection;
+
+    @SuppressWarnings("serial")
+    public SaveTest() {
+        super(new JacksonMapper.Builder()
+                .registerModule(new SimpleModule() {{
+                    this.setMixInAnnotation(ExternalType.class, ExternalTypeMixin.class);
+                }}).build());
+
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -52,11 +63,12 @@ public class SaveTest extends JongoTestCase {
         Friend friend = new Friend("John", "22 Wall Street Avenue");
 
         collection.save(friend);
+        long afterSave = new Date().getTime();
 
         Friend john = collection.findOne("{name:'John'}").as(Friend.class);
         assertThat(john).isNotNull();
         assertThat(john.getId()).isNotNull();
-        assertThat(john.getId().isNew()).isFalse();
+        assertThat(john.getId().getDate().getTime()).isLessThan(afterSave);
     }
 
     @Test
@@ -66,10 +78,11 @@ public class SaveTest extends JongoTestCase {
         Friend john = new Friend(oid, "John");
 
         collection.save(john);
+        long afterSave = new Date().getTime();
 
         Friend result = collection.findOne(oid).as(Friend.class);
         assertThat(result.getId()).isEqualTo(oid);
-        assertThat(oid.isNew()).isFalse();  //insert
+        assertThat(john.getId().getDate().getTime()).isLessThan(afterSave);  //insert
     }
 
     @Test
@@ -90,25 +103,25 @@ public class SaveTest extends JongoTestCase {
     @Test
     public void canSaveWithACustomTypeId() throws Exception {
 
-        ExternalFriend john = new ExternalFriend(999, "Robert");
+        ExternalFriend john = new ExternalFriend("999", "Robert");
 
         collection.save(john);
 
         ExternalFriend result = collection.findOne().as(ExternalFriend.class);
-        assertThat(result.getId()).isEqualTo(999);
+        assertThat(result.getId()).isEqualTo("999");
     }
 
     @Test
     public void canUpdateWithACustomTypeId() throws Exception {
 
-        ExternalFriend friend = new ExternalFriend(999, "Robert");
+        ExternalFriend friend = new ExternalFriend("999", "Robert");
         collection.save(friend);
 
         friend.setName("Robert");
         collection.save(friend);
 
         ExternalFriend result = collection.findOne().as(ExternalFriend.class);
-        assertThat(result.getId()).isEqualTo(999);
+        assertThat(result.getId()).isEqualTo("999");
     }
 
     @Test
@@ -141,9 +154,42 @@ public class SaveTest extends JongoTestCase {
     }
 
     @Test
+    public void canUpdateWithObjectId() throws Exception {
+        String id = ObjectId.get().toString();
+        ExposableFriend robert = new ExposableFriend(id, "Robert");
+
+        collection.save(robert);
+        assertThat(robert.getId()).isEqualTo(id);
+
+        robert.setName("Hue"); // <-- "famous" french Robert
+        collection.save(robert);
+
+        ExposableFriend robertHue = collection.findOne("{_id: #}", new ObjectId(id)).as(ExposableFriend.class);
+        assertThat(robertHue.getId()).isEqualTo(id);
+        assertThat(robertHue.getName()).isEqualTo("Hue");
+    }
+
+    // this test is not working with the compatibility test suite.
+    @Ignore
+    @Test
+    public void canUpdateWithObjectIdWithAnnotationOverride() throws Exception {
+        String id = ObjectId.get().toString();
+        ExternalType robert = new ExternalType(id, "Robert");
+
+        collection.save(robert);
+
+        robert.setName("Hue"); // <-- "famous" french Robert
+        collection.save(robert);
+
+        ExternalType robertHue = collection.findOne("{_id: #}", new ObjectId(id)).as(ExternalType.class);
+        assertThat(robertHue.getId()).isEqualTo(id);
+        assertThat(robertHue.getName()).isEqualTo("Hue");
+    }
+
+    @Test
     public void canUpdateAPojoWithACustomId() throws Exception {
 
-        ExternalFriend externalFriend = new ExternalFriend(122, "John");
+        ExternalFriend externalFriend = new ExternalFriend("122", "John");
         MongoCollection safeCollection = collection.withWriteConcern(WriteConcern.SAFE);
 
         safeCollection.save(externalFriend);
@@ -151,11 +197,11 @@ public class SaveTest extends JongoTestCase {
         safeCollection.save(externalFriend);
 
         ExternalFriend result = collection.findOne("{name:'Robert'}").as(ExternalFriend.class);
-        assertThat(result.getId()).isEqualTo(122);
+        assertThat(result.getId()).isEqualTo("122");
     }
 
     @Test
-    public void canSaveWithAnEmptyObjectIdAsString() throws Exception {
+    public void canSaveAPojoWithAnEmptyObjectIdAsString() throws Exception {
 
         ExposableFriend john = new ExposableFriend("Robert");
 
@@ -167,20 +213,19 @@ public class SaveTest extends JongoTestCase {
     }
 
     @Test
-    public void canUpdateAValidObjectIdString() {
+    public void canUpdateAPojoWithAnValidObjectIdAsString() {
 
-        Order order = new Order();
-        order.setBuyer("foo");
+        ExposableFriend friend = new ExposableFriend(ObjectId.get().toString(), "Robert");
 
-        collection.save(order);
-        String id = order.getId();
-        assertThat(order.getId()).isNotNull();
+        collection.save(friend);
+        String id = friend.getId();
+        assertThat(friend.getId()).isNotNull();
 
-        order.setBuyer("bar");
-        collection.save(order);
+        friend.setName("John");
+        collection.save(friend);
 
-        assertThat(order.getId()).isEqualTo(id);
-        assertThat(order.getBuyer()).isEqualTo("bar");
+        assertThat(friend.getId()).isEqualTo(id);
+        assertThat(friend.getName()).isEqualTo("John");
     }
 
     @Test
@@ -207,57 +252,10 @@ public class SaveTest extends JongoTestCase {
     }
 
     @Test
-    public void canSaveWithWriteConcern() throws Exception {
-
-        Friend friend = new Friend("John", "22 Wall Street Avenue");
-
-        WriteResult writeResult = collection.withWriteConcern(WriteConcern.SAFE).save(friend);
-
-        assertThat(writeResult.getLastConcern()).isEqualTo(WriteConcern.SAFE);
-    }
-
-    @Test
-    public void shouldUseDefaultWriteConcern() throws Exception {
-
-        Friend friend = new Friend("John", "22 Wall Street Avenue");
-
-        WriteResult writeResult = collection.save(friend);
-
-        assertThat(writeResult.getLastConcern()).isEqualTo(collection.getDBCollection().getWriteConcern());
-    }
-
-    @Test
     public void canSaveWithCompositeKey() {
 
         MapReduceData aggregate = new MapReduceData("group", new Date(), 1);
 
         collection.save(aggregate);
     }
-
-    private static class Order {
-
-        @Id
-        private String id;
-        private String buyer;
-
-        public Order() {
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public String getBuyer() {
-            return buyer;
-        }
-
-        public void setBuyer(String buyer) {
-            this.buyer = buyer;
-        }
-    }
-
 }

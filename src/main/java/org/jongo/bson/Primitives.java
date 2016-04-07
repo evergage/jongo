@@ -17,7 +17,7 @@
 package org.jongo.bson;
 
 import com.mongodb.DBObject;
-import com.mongodb.DBRefBase;
+import com.mongodb.DBRef;
 import org.bson.types.*;
 
 import java.util.Date;
@@ -44,14 +44,13 @@ class Primitives {
         PRIMITIVES.add(UUID.class);
         PRIMITIVES.add(Code.class);
         PRIMITIVES.add(DBObject.class);
-        PRIMITIVES.add(DBRefBase.class);
+        PRIMITIVES.add(DBRef.class);
         PRIMITIVES.add(CodeWScope.class);
         PRIMITIVES.add(Binary.class);
-        PRIMITIVES.add(byte[].class);
     }
 
     public static <T> boolean contains(Class<T> clazz) {
-        if (PRIMITIVES.contains(clazz))
+        if (PRIMITIVES.contains(clazz) || isAJavaPrimitiveArray(clazz))
             return true;
 
         for (Class<?> primitive : PRIMITIVES) {
@@ -60,6 +59,10 @@ class Primitives {
             }
         }
         return false;
+    }
+
+    private static <T> boolean isAJavaPrimitiveArray(Class<T> clazz) {
+        return clazz.isArray() && clazz.getComponentType().isPrimitive();
     }
 
     private Primitives() {
