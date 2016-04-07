@@ -194,7 +194,7 @@ public class MongoCollection {
     }
 
     public Aggregate aggregate(Query query) {
-        return new Aggregate(collection.getDB(), collection.getName(),  mapper.getUnmarshaller(), mapper.getQueryFactory()).and(query);
+        return new Aggregate(collection, mapper.getUnmarshaller(), mapper.getQueryFactory()).and(query);
     }
 
     public void drop() {
