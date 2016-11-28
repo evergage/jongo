@@ -190,11 +190,11 @@ public class MongoCollection {
     }
 
     public Aggregate aggregate(String pipelineOperator, Object... parameters) {
-        return new Aggregate(collection, mapper.getUnmarshaller(), mapper.getQueryFactory()).and(pipelineOperator, parameters);
+        return new Aggregate(collection, readPreference, mapper.getUnmarshaller(), mapper.getQueryFactory()).and(pipelineOperator, parameters);
     }
 
     public Aggregate aggregate(Query query) {
-        return new Aggregate(collection, mapper.getUnmarshaller(), mapper.getQueryFactory()).and(query);
+        return new Aggregate(collection, readPreference, mapper.getUnmarshaller(), mapper.getQueryFactory()).and(query);
     }
 
     public void drop() {

@@ -20,6 +20,9 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.google.common.collect.Lists;
 import com.mongodb.AggregationOptions;
 import com.mongodb.MongoCommandException;
+import com.mongodb.ReadPreference;
+import org.bson.types.ObjectId;
+import org.jongo.Aggregate.ResultsIterator;
 import org.jongo.marshall.jackson.JacksonMapper;
 import org.jongo.model.ExternalType;
 import org.jongo.model.ExternalType.ExternalTypeMixin;
@@ -222,6 +225,24 @@ public class AggregateTest extends JongoTestCase {
         for (ExternalType externalType : externalTypes) {
             assertThat(externalType.getId()).as("id not null").isNotNull();
         }
+    }
+
+    @Test
+    public void canAggregateWithReadPreference() throws Exception {
+        /* given */
+        Friend friend = new Friend(new ObjectId(), "John");
+        collection.save(friend);
+
+        /* when */
+        ResultsIterator<Friend> friends = collection.withReadPreference(ReadPreference.secondaryPreferred())
+                .aggregate("{$match: {name:'John'}}").as(Friend.class);
+
+        /* then */
+        assertThat(friends.hasNext()).isTrue();
+        assertThat(friends.next().getName()).isEqualTo("John");
+        assertThat(friends.hasNext()).isFalse();
+
+        // warning: we cannot check that ReadPreference is really used by driver, this unit test only checks the API
     }
 
     private final static class Article {

@@ -19,6 +19,7 @@ package org.jongo;
 import com.mongodb.AggregationOptions;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.ReadPreference;
 import org.jongo.marshall.Unmarshaller;
 import org.jongo.query.Query;
 import org.jongo.query.QueryFactory;
@@ -38,13 +39,17 @@ public class Aggregate {
     private final List<DBObject> pipeline;
     private final AtomicReference<AggregationOptions> options;
     private final DBCollection collection;
+    private final ReadPreference readPreference;
 
-    Aggregate(DBCollection collection, Unmarshaller unmarshaller, QueryFactory queryFactory) {
+    Aggregate(
+            DBCollection collection, ReadPreference readPreference, Unmarshaller unmarshaller,
+            QueryFactory queryFactory) {
         this.unmarshaller = unmarshaller;
         this.queryFactory = queryFactory;
         this.pipeline = new ArrayList<DBObject>();
         this.options = new AtomicReference<AggregationOptions>();
         this.collection = collection;
+        this.readPreference = readPreference;
     }
 
 
@@ -72,9 +77,9 @@ public class Aggregate {
         Iterator<DBObject> results;
         AggregationOptions options = this.options.get();
         if (options != null) {
-            results = collection.aggregate(pipeline, options);
+            results = collection.aggregate(pipeline, options, readPreference);
         } else {
-            results = collection.aggregate(pipeline).results().iterator();
+            results = collection.aggregate(pipeline, readPreference).results().iterator();
         }
         return new ResultsIterator<T>(results, resultHandler);
     }
