@@ -20,7 +20,7 @@ import com.mongodb.DBObject;
 import com.mongodb.LazyDBCallback;
 import com.mongodb.LazyDBObject;
 
-class BsonDBObject extends LazyDBObject implements BsonDocument {
+public class BsonDBObject extends LazyDBObject implements BsonDocument {
 
     public BsonDBObject(byte[] data, int offset) {
         super(data, offset, new BsonCallback());
