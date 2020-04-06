@@ -16,6 +16,8 @@
 package org.jongo.query;
 
 import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import org.bson.BsonDocumentWrapper;
 import org.bson.conversions.Bson;
 
 public class DBQuery implements Query {
@@ -31,6 +33,6 @@ public class DBQuery implements Query {
     }
 
     public Bson toBson() {
-        return null;  //TODO: Implement
+        return BsonDocumentWrapper.asBsonDocument(query, MongoClient.getDefaultCodecRegistry());
     }
 }

@@ -17,9 +17,12 @@
 package org.jongo.query;
 
 import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
+import org.bson.BsonDocumentWrapper;
 import org.bson.conversions.Bson;
 
+@Deprecated // Use BsonQueryFactory.createQuery() instead
 public class JsonQuery implements Query {
 
     private final DBObject dbo;
@@ -41,7 +44,7 @@ public class JsonQuery implements Query {
     }
 
     public Bson toBson() {
-        return null;  //TODO: Implement
+        return BsonDocumentWrapper.asBsonDocument(dbo, MongoClient.getDefaultCodecRegistry());
     }
 
     @Override
