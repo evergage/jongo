@@ -81,7 +81,7 @@ public class Aggregate {
         if (options != null) {
             results = collection.aggregate(pipeline, options, readPreference);
         } else {
-            results = collection.aggregate(pipeline, readPreference).results().iterator();
+            results = collection.aggregate(pipeline, AggregationOptions.builder().build(), readPreference);
         }
         return new ResultsIterator<T>(results, resultHandler);
     }
