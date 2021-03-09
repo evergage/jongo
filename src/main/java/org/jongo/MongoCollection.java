@@ -17,6 +17,7 @@
 package org.jongo;
 
 import com.mongodb.*;
+import com.mongodb.client.model.DBCollectionCountOptions;
 import org.bson.types.ObjectId;
 import org.jongo.query.Query;
 import org.jongo.query.DBQuery;
@@ -125,7 +126,7 @@ public class MongoCollection {
     }
 
     public long count(Query query) {
-        return collection.getCount(query.toDBObject(), null, readPreference);
+        return collection.getCount(query.toDBObject(), new DBCollectionCountOptions().readPreference(readPreference));
     }
 
     public Update update(String query) {

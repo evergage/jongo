@@ -16,11 +16,11 @@
 
 package org.jongo.query;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
-import com.mongodb.util.JSON;
+import org.bson.BsonDocument;
 import org.bson.BsonDocumentWrapper;
-import org.bson.conversions.Bson;
 
 @Deprecated // Use BsonQueryFactory.createQuery() instead
 public class JsonQuery implements Query {
@@ -33,7 +33,7 @@ public class JsonQuery implements Query {
 
     private DBObject marshallQuery(String query) {
         try {
-            return (DBObject) JSON.parse(query);
+            return BasicDBObject.parse(query);
         } catch (Exception e) {
             throw new IllegalArgumentException(query + " cannot be parsed", e);
         }
@@ -43,7 +43,8 @@ public class JsonQuery implements Query {
         return dbo;
     }
 
-    public Bson toBson() {
+    @Override
+    public BsonDocument toBsonDocument() {
         return BsonDocumentWrapper.asBsonDocument(dbo, MongoClient.getDefaultCodecRegistry());
     }
 
