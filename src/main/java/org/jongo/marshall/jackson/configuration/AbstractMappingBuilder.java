@@ -77,7 +77,7 @@ public abstract class AbstractMappingBuilder<T extends AbstractMappingBuilder<T>
         return getBuilderInstance();
     }
 
-    public T registerModule(final Module module) {
+    public T registerModule(final com.fasterxml.jackson.databind.Module module) {
         modifiers.add(new MapperModifier() {
             public void modify(ObjectMapper mapper) {
                 mapper.registerModule(module);
