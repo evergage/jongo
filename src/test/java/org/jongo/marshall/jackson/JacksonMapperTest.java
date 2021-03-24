@@ -102,7 +102,7 @@ public class JacksonMapperTest {
         ObjectId oid = new ObjectId("504482e5e4b0d1b2c47fff66");
         Friend friend = new Friend(oid, "Robert");
         Mapper mapper = jacksonMapper()
-                .registerModule(new Module() {
+                .registerModule(new com.fasterxml.jackson.databind.Module() {
                     @Override
                     public String getModuleName() {
                         return "test-module";
